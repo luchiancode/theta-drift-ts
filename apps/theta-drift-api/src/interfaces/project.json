@@ -1,0 +1,9 @@
+{
+  "name": "theta-drift-api-interfaces",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/theta-drift-api/src/interfaces/src",
+  "projectType": "library",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project theta-drift-api-interfaces --web",
+  "targets": {}
+}

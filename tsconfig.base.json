@@ -1,0 +1,36 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": false,
+    "paths": {
+      "@theta-drift/shared/nav": [
+        "./apps/theta-drift-ui/libs/shared/nav/src/index.ts"
+      ],
+      "@cross-interfaces": [
+        "./apps/shared/interfaces/src/index.ts"
+      ],
+      "@theta-drift/theta-drift-api/interfaces": [
+        "./apps/theta-drift-api/src/interfaces/src/index.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

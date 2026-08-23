@@ -1,0 +1,73 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RatingStatus {
+  PENDING
+  IN_PROGRESS
+  RATED
+  IRRELEVANT
+  FAILED
+
+  @@map("rating_status")
+}
+
+model Article {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  externalId   String       @unique(map: "article_external_id_key") @map("external_id")
+  url          String?
+  headline     String
+  body         String?
+  imageUrl     String?      @map("image_url")
+  sourceName   String?      @map("source_name")
+  publishedAt  DateTime     @map("published_at") @db.Timestamptz(6)
+  fetchedAt    DateTime     @map("fetched_at") @db.Timestamptz(6)
+  ratingStatus RatingStatus @default(PENDING) @map("rating_status")
+
+  ratings Rating[]
+
+  @@index([publishedAt], map: "article_published_idx")
+  @@index([ratingStatus], map: "article_rating_status_idx")
+  @@map("article")
+}
+
+model Asset {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  quoteSymbol String   @unique
+  name        String
+  assetClass  String   @map("asset_class")
+  aliases     String[] @default([])
+
+  inUniverse Boolean @default(true) @map("in_universe")
+
+  ratings Rating[]
+
+  @@map("asset")
+}
+
+model Rating {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  articleId            String   @map("article_id") @db.Uuid
+  assetId              String   @map("asset_id") @db.Uuid
+  score                Int
+  confidence           Int
+  explanation          String?
+  model                String
+  promptVersion        String   @map("prompt_version")
+  ratedAt              DateTime @map("rated_at") @db.Timestamptz(6)
+  gradingWindowMinutes Int      @map("grading_window_minutes")
+  snapshot             Json?
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id])
+
+  @@unique([articleId, assetId], map: "rating_article_asset_uq")
+  @@index([assetId], map: "rating_asset_idx")
+  @@map("rating")
+}

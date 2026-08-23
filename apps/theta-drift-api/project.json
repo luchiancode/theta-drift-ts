@@ -1,0 +1,131 @@
+{
+  "name": "theta-drift-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/theta-drift-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "db:up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose up -d --wait",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "db:down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose down",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "prisma:generate": {
+      "cache": true,
+      "outputs": ["{projectRoot}/src/generated/prisma"],
+      "inputs": ["{projectRoot}/prisma/schema.prisma"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma generate",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "prisma:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate dev",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "prisma:deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate deploy",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "prisma:seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma db seed",
+        "cwd": "apps/theta-drift-api"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prisma:generate"],
+      "options": {
+        "command": "webpack-cli build",
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "cwd": "apps/theta-drift-api"
+      },
+      "configurations": {
+        "development": {
+          "env": {
+            "NODE_ENV": "development"
+          }
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/dist/apps/theta-drift-api/package.json",
+        "{workspaceRoot}/dist/apps/theta-drift-api/pnpm-lock.yaml"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": [
+        "{workspaceRoot}/dist/apps/theta-drift-api/workspace_modules"
+      ],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "theta-drift-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "theta-drift-api:build:development"
+        },
+        "production": {
+          "buildTarget": "theta-drift-api:build:production"
+        }
+      }
+    },
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    },
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}/e2e"],
+      "dependsOn": ["build", "serve"],
+      "options": {
+        "jestConfig": "apps/theta-drift-api/e2e/jest.config.cts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

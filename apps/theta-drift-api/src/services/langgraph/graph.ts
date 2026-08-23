@@ -1,0 +1,45 @@
+import { END, START, StateGraph } from '@langchain/langgraph';
+import { Injectable } from '@nestjs/common';
+import { Observable, defer, from } from 'rxjs';
+import { CurateNode } from './curate.node';
+import { RateNode } from './rate.node';
+import {
+  RatingStateAnnotation,
+  type RatingState,
+  type UniverseAsset,
+} from './state';
+
+export interface GraphInput {
+  articleId: string;
+  title: string;
+  body: string;
+  candidates: UniverseAsset[];
+}
+
+@Injectable()
+export class RatingGraph {
+  private readonly compiled: ReturnType<typeof this.buildGraph>;
+
+  constructor(curateNode: CurateNode, rateNode: RateNode) {
+    this.compiled = this.buildGraph(curateNode, rateNode);
+  }
+
+  invoke(input: GraphInput): Observable<RatingState> {
+    return defer(() => from(this.compiled.invoke(input)));
+  }
+
+  buildGraph(curateNode: CurateNode, rateNode: RateNode) {
+    return new StateGraph(RatingStateAnnotation)
+      .addNode('curate', curateNode.asNode())
+      .addNode('rate', rateNode.asNode())
+      .addEdge(START, 'curate')
+      .addConditionalEdges(
+        'curate',
+        (state: RatingState) =>
+          (state.universe ?? []).length > 0 ? 'rate' : END,
+        { rate: 'rate', [END]: END },
+      )
+      .addEdge('rate', END)
+      .compile();
+  }
+}

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: theta-drift-postgres
+    restart: unless-stopped
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_USER: ${DB_USER:-thetadrift}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-thetadrift}
+      POSTGRES_DB: ${DB_NAME:-thetadrift}
+    volumes:
+      - theta-drift-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-thetadrift} -d ${DB_NAME:-thetadrift}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  theta-drift-pgdata:
