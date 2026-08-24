@@ -5,9 +5,9 @@ import {
   type LlmProvider,
 } from '../adapters/llm/llm.provider';
 import { ENV, type Env } from '../../config/configuration';
-import { newsBlock } from './news';
+import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
 import { curateVerdictSchema } from './schemas';
-import { type RatingState, type UniverseAsset } from './state';
+import { type RatingState } from './state';
 
 const INSTRUCTIONS = `
 You pick which assets a news article might move. You do not score them.
@@ -33,9 +33,9 @@ export class CurateNode {
   curate(
     title: string,
     body: string,
-    candidates: UniverseAsset[],
+    candidates: Asset[],
     limit: number,
-  ): Observable<UniverseAsset[]> {
+  ): Observable<Asset[]> {
     const known = new Map(
       candidates.map((asset) => [asset.symbol.toUpperCase(), asset]),
     );
@@ -48,11 +48,11 @@ export class CurateNode {
         'curate',
         curateVerdictSchema,
         `CANDIDATES:\n${lines}\n\n${INSTRUCTIONS}`,
-        newsBlock(title, body),
+        `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`,
       )
       .pipe(
         map((verdict) => {
-          const picked: UniverseAsset[] = [];
+          const picked: Asset[] = [];
           const seen = new Set<string>();
           const dropped: string[] = [];
           for (const symbol of verdict.symbols) {

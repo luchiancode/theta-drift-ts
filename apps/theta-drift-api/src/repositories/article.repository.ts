@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Observable, defer, from, map } from 'rxjs';
 import type {
   Article,
-  ProviderArticle,
   Quote,
 } from '@theta-drift/theta-drift-api/interfaces';
 import { Prisma, RatingStatus } from '../generated/prisma/client';
@@ -18,14 +17,11 @@ export class ArticleRepository {
 
   constructor(private readonly prismaService: PrismaService) {}
 
-  saveArticles(articles: ProviderArticle[], fetchedAt: Date): Observable<number> {
+  saveArticles(articles: Omit<Article, 'id'>[]): Observable<number> {
     return defer(() =>
       from(
         this.prismaService.article.createMany({
-          data: articles.map((article) => ({
-            ...article,
-            fetchedAt
-          })),
+          data: articles,
           skipDuplicates: true,
         }),
       ),
@@ -58,12 +54,12 @@ export class ArticleRepository {
 
   findFirstPendingArticle(): Observable<Pick<
     Article,
-    'id' | 'headline' | 'body' | 'publishedAt'
+    'id' | 'title' | 'body' | 'publishedAt'
   > | null> {
     return defer(() =>
       from(
         this.prismaService.$queryRaw<
-          Pick<Article, 'id' | 'headline' | 'body' | 'publishedAt'>[]
+          Pick<Article, 'id' | 'title' | 'body' | 'publishedAt'>[]
         >`
           UPDATE article
              SET rating_status = 'IN_PROGRESS'::rating_status
@@ -75,7 +71,7 @@ export class ArticleRepository {
                   LIMIT 1
                     FOR UPDATE SKIP LOCKED
            )
-       RETURNING id, headline, body, published_at AS "publishedAt"
+       RETURNING id, title, body, published_at AS "publishedAt"
         `,
       ),
     ).pipe(map((rows) => rows[0] ?? null));
@@ -101,12 +97,12 @@ export class ArticleRepository {
         this.prismaService.$transaction(async (tx) => {
           const assets = await tx.asset.findMany({
             where: {
-              quoteSymbol: { in: ratings.map((rating) => rating.symbol) },
+              symbol: { in: ratings.map((rating) => rating.symbol) },
             },
-            select: { id: true, quoteSymbol: true },
+            select: { id: true, symbol: true },
           });
           const assetIds = new Map(
-            assets.map((asset) => [asset.quoteSymbol, asset.id]),
+            assets.map((asset) => [asset.symbol, asset.id]),
           );
 
           const rows = [];

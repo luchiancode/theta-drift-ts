@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { ENV, type Env } from '../../../config/configuration';
 
-export interface ArticleRowDto {
+export interface ArticleDto {
   id?: string;
   title?: string;
   description?: string;
@@ -14,10 +14,6 @@ export interface ArticleRowDto {
   source?: { name?: string };
 }
 
-interface ArticlesResponseDto {
-  articles?: ArticleRowDto[];
-}
-
 @Injectable()
 export class ArticlesClient {
   constructor(
@@ -25,9 +21,9 @@ export class ArticlesClient {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  getTopHeadlines(): Observable<ArticleRowDto[]> {
+  getTopHeadlines(): Observable<ArticleDto[]> {
     return this.httpService
-      .get<ArticlesResponseDto>('top-headlines', {
+      .get<{ articles?: ArticleDto[] }>('top-headlines', {
         baseURL: `${this.env.ARTICLES_PROVIDER_BASE_URL}/`,
         timeout: this.env.ARTICLES_PROVIDER_TIMEOUT_MS,
         params: {

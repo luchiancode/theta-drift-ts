@@ -22,9 +22,9 @@ model Article {
   id           String       @id @default(uuid(7)) @db.Uuid
   externalId   String       @unique(map: "article_external_id_key") @map("external_id")
   url          String?
-  headline     String
+  title        String
   body         String?
-  imageUrl     String?      @map("image_url")
+  image        String?
   sourceName   String?      @map("source_name")
   publishedAt  DateTime     @map("published_at") @db.Timestamptz(6)
   fetchedAt    DateTime     @map("fetched_at") @db.Timestamptz(6)
@@ -39,7 +39,7 @@ model Article {
 
 model Asset {
   id          String   @id @default(uuid(7)) @db.Uuid
-  quoteSymbol String   @unique
+  symbol String @unique
   name        String
   assetClass  String   @map("asset_class")
   aliases     String[] @default([])

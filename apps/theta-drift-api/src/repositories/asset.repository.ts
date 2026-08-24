@@ -10,17 +10,17 @@ export class AssetRepository {
     return defer(() =>
       from(
         this.prismaService.asset.findMany({
-          orderBy: { quoteSymbol: 'asc' },
+          orderBy: { symbol: 'asc' },
         }),
       ),
     );
   }
 
-  findAsset(quoteSymbol: string) {
+  findAsset(symbol: string) {
     return defer(() =>
       from(
         this.prismaService.asset.findUnique({
-          where: { quoteSymbol: quoteSymbol.toUpperCase() },
+          where: { symbol: symbol.toUpperCase() },
         }),
       ),
     );

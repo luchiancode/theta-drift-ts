@@ -24,8 +24,7 @@ export class IngestService {
           return of(0);
         }
 
-        const fetchedAt = new Date();
-        return this.articleRepository.saveArticles(articles, fetchedAt).pipe(
+        return this.articleRepository.saveArticles(articles).pipe(
           tap((count) =>
             this.log.log(
               `${this.articlesProvider.name}: fetched ${articles.length} articles, inserted ${count}`,

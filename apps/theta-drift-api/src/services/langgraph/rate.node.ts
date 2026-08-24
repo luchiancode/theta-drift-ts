@@ -8,10 +8,9 @@ import {
   QUOTES_PROVIDER,
   type QuotesProvider,
 } from '../adapters/quotes/quotes.provider';
-import type { Quote } from '@theta-drift/theta-drift-api/interfaces';
-import { newsBlock } from './news';
+import type { Asset, Quote } from '@theta-drift/theta-drift-api/interfaces';
 import { verdictSchema } from './schemas';
-import { type RatingState, type UniverseAsset } from './state';
+import { type RatingState } from './state';
 
 export const PROMPT_VERSION = 'graph-v3';
 
@@ -52,7 +51,7 @@ export class RateNode {
     articleId: string,
     title: string,
     body: string,
-    universe: UniverseAsset[],
+    universe: Asset[],
   ): Observable<Partial<RatingState>> {
     const ratedAt = new Date();
     return this.quotesFor(universe).pipe(
@@ -61,12 +60,14 @@ export class RateNode {
           .getVerdict(
             'rate',
             verdictSchema,
-            systemInstruction(universe, quotes, ratedAt),
-            newsBlock(title, body),
+            this.systemInstruction(universe, quotes, ratedAt),
+            `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`,
           )
           .pipe(
             map((verdict) => {
-              const known = new Set(universe.map((asset) => asset.symbol));
+              const known = new Set(
+                universe.map((asset) => asset.symbol),
+              );
               const kept = verdict.ratings.filter((rating) =>
                 known.has(rating.symbol),
               );
@@ -103,90 +104,90 @@ export class RateNode {
       );
   }
 
-  private quotesFor(universe: UniverseAsset[]): Observable<Map<string, Quote>> {
+  private quotesFor(universe: Asset[]): Observable<Map<string, Quote>> {
     const symbols = [
       ...new Set(universe.map((asset) => asset.symbol).filter(Boolean)),
     ];
     return this.quotesProvider.quotesFor(symbols);
   }
-}
 
-function systemInstruction(
-  universe: UniverseAsset[],
-  quotes: Map<string, Quote>,
-  ratedAt: Date,
-): string {
-  const lines = universe.map((asset) =>
-    asset.aliases.length > 0
-      ? `- ${asset.symbol}: ${asset.name} (also called: ${asset.aliases.join(', ')})`
-      : `- ${asset.symbol}: ${asset.name}`,
-  );
-  const tapes: string[] = [];
-  for (const [symbol, quote] of quotes) {
-    tapes.push(tapeBlock(symbol, quote, ratedAt));
-  }
-  const tape =
-    tapes.length > 0 ? `\n\nTAPE:\n${tapes.join('\n\n')}` : '';
-  return `UNIVERSE:\n${lines.join('\n')}\n\n${INSTRUCTIONS}${tape}`;
-}
-
-function tapeBlock(symbol: string, quote: Quote, ratedAt: Date): string {
-  const lines = [
-    `${symbol} as of ${stamp(ratedAt)}`,
-    `last: ${n(quote.price)}  chg ${n(quote.change)} (${pct(quote.changePercentage)})  prev close ${n(quote.previousClose)}`,
-    `day range: ${n(quote.dayLow)} – ${n(quote.dayHigh)}  open ${n(quote.open)}  vol ${vol(quote.volume)}`,
-    `52w range: ${n(quote.yearLow)} – ${n(quote.yearHigh)}`,
-  ];
-
-  const averages: string[] = [];
-  if (quote.priceAvg50 !== null) {
-    averages.push(
-      `50d avg ${n(quote.priceAvg50)}${relative(quote.price, quote.priceAvg50)}`,
+  private systemInstruction(
+    universe: Asset[],
+    quotes: Map<string, Quote>,
+    ratedAt: Date,
+  ): string {
+    const lines = universe.map((asset) =>
+      asset.aliases.length > 0
+        ? `- ${asset.symbol}: ${asset.name} (also called: ${asset.aliases.join(', ')})`
+        : `- ${asset.symbol}: ${asset.name}`,
     );
-  }
-  if (quote.priceAvg200 !== null) {
-    averages.push(
-      `200d avg ${n(quote.priceAvg200)}${relative(quote.price, quote.priceAvg200)}`,
-    );
-  }
-  if (averages.length > 0) {
-    lines.push(averages.join('  '));
+    const tapes: string[] = [];
+    for (const [symbol, quote] of quotes) {
+      tapes.push(this.tapeBlock(symbol, quote, ratedAt));
+    }
+    const tape =
+      tapes.length > 0 ? `\n\nTAPE:\n${tapes.join('\n\n')}` : '';
+    return `UNIVERSE:\n${lines.join('\n')}\n\n${INSTRUCTIONS}${tape}`;
   }
 
-  return lines.join('\n');
-}
+  private tapeBlock(symbol: string, quote: Quote, ratedAt: Date): string {
+    const lines = [
+      `${symbol} as of ${this.stamp(ratedAt)}`,
+      `last: ${this.n(quote.price)}  chg ${this.n(quote.change)} (${this.pct(quote.changePercentage)})  prev close ${this.n(quote.previousClose)}`,
+      `day range: ${this.n(quote.dayLow)} – ${this.n(quote.dayHigh)}  open ${this.n(quote.open)}  vol ${this.vol(quote.volume)}`,
+      `52w range: ${this.n(quote.yearLow)} – ${this.n(quote.yearHigh)}`,
+    ];
 
-function relative(price: number | null, average: number): string {
-  if (price === null || average === 0) {
-    return '';
-  }
-  return ` (price ${pct(((price - average) / average) * 100)})`;
-}
+    const averages: string[] = [];
+    if (quote.priceAvg50 !== null) {
+      averages.push(
+        `50d avg ${this.n(quote.priceAvg50)}${this.relative(quote.price, quote.priceAvg50)}`,
+      );
+    }
+    if (quote.priceAvg200 !== null) {
+      averages.push(
+        `200d avg ${this.n(quote.priceAvg200)}${this.relative(quote.price, quote.priceAvg200)}`,
+      );
+    }
+    if (averages.length > 0) {
+      lines.push(averages.join('  '));
+    }
 
-function stamp(ratedAt: Date): string {
-  return `${ratedAt.toISOString().slice(0, 16).replace('T', ' ')}Z`;
-}
+    return lines.join('\n');
+  }
 
-function n(value: number | null, digits = 2): string {
-  return value === null ? '—' : value.toFixed(digits);
-}
+  private relative(price: number | null, average: number): string {
+    if (price === null || average === 0) {
+      return '';
+    }
+    return ` (price ${this.pct(((price - average) / average) * 100)})`;
+  }
 
-function pct(value: number | null): string {
-  if (value === null) {
-    return '—';
+  private stamp(ratedAt: Date): string {
+    return `${ratedAt.toISOString().slice(0, 16).replace('T', ' ')}Z`;
   }
-  return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-}
 
-function vol(volume: number | null): string {
-  if (volume === null || volume === 0) {
-    return '—';
+  private n(value: number | null, digits = 2): string {
+    return value === null ? '—' : value.toFixed(digits);
   }
-  if (volume >= 1_000_000) {
-    return `${(volume / 1_000_000).toFixed(1)}M`;
+
+  private pct(value: number | null): string {
+    if (value === null) {
+      return '—';
+    }
+    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
   }
-  if (volume >= 1_000) {
-    return `${(volume / 1_000).toFixed(1)}K`;
+
+  private vol(volume: number | null): string {
+    if (volume === null || volume === 0) {
+      return '—';
+    }
+    if (volume >= 1_000_000) {
+      return `${(volume / 1_000_000).toFixed(1)}M`;
+    }
+    if (volume >= 1_000) {
+      return `${(volume / 1_000).toFixed(1)}K`;
+    }
+    return volume.toFixed(0);
   }
-  return volume.toFixed(0);
 }

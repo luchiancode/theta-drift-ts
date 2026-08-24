@@ -3,11 +3,11 @@ import { Module } from '@nestjs/common';
 import { ArticlesClient } from './clients/articles.client';
 import { LlmClient } from './clients/llm.client';
 import { QuoteClient } from './clients/quote.client';
-import { ArticlesProviderAdapter } from './articles/articles.service';
+import { ArticlesProviderAdapter } from './articles/articles.adapter';
 import { ARTICLES_PROVIDER } from './articles/articles.provider';
-import { LlmProviderAdapter } from './llm/llm.service';
+import { LlmProviderAdapter } from './llm/llm.adapter';
 import { LLM_PROVIDER } from './llm/llm.provider';
-import { QuotesProviderAdapter } from './quotes/quotes.service';
+import { QuotesProviderAdapter } from './quotes/quotes.adapter';
 import { QUOTES_PROVIDER } from './quotes/quotes.provider';
 
 

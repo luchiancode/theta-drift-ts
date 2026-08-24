@@ -1,11 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { AxiosError, AxiosResponse } from 'axios';
 import { Observable, catchError, defer, map, of, throwError } from 'rxjs';
-import type { ProviderArticle } from '@theta-drift/theta-drift-api/interfaces';
-import {
-  ArticlesClient,
-  type ArticleRowDto,
-} from '../clients/articles.client';
+import type { Article } from '@theta-drift/theta-drift-api/interfaces';
+import { ArticlesClient, type ArticleDto } from '../clients/articles.client';
 import type { ArticlesProvider } from './articles.provider';
 
 const BACKOFF_INITIAL_MS = 120_000;
@@ -24,7 +21,7 @@ export class ArticlesProviderAdapter implements ArticlesProvider {
     private readonly articlesClient: ArticlesClient,
   ) {}
 
-  fetchLatest(): Observable<ProviderArticle[]> {
+  fetchLatest(): Observable<Omit<Article, 'id'>[]> {
     return defer(() => {
       if (this.pausedUntil !== null && Date.now() < this.pausedUntil) {
         this.log.warn(
@@ -33,19 +30,19 @@ export class ArticlesProviderAdapter implements ArticlesProvider {
         return of([]);
       }
 
-
       return this.articlesClient.getTopHeadlines().pipe(
         map((rows) => {
           this.strikes = 0;
+          const fetchedAt = new Date();
           return rows
-            .map(toProviderArticle)
-            .filter((article): article is ProviderArticle => article !== null);
+            .map((row) => toArticle(row, fetchedAt))
+            .filter((article): article is Omit<Article, 'id'> => article !== null);
         }),
         catchError((error: AxiosError) => {
           const status = error.response?.status;
           if (status !== undefined && THROTTLED.has(status)) {
             this.pause(error.response as AxiosResponse);
-            return of<ProviderArticle[]>([]);
+            return of<Omit<Article, 'id'>[]>([]);
           }
           return throwError(() => error);
         }),
@@ -75,28 +72,28 @@ function retryAfterMs(response: AxiosResponse): number | null {
   return Number.isNaN(until) ? null : Math.max(0, until - Date.now());
 }
 
-function toProviderArticle(raw: ArticleRowDto): ProviderArticle | null {
+function toArticle(raw: ArticleDto, fetchedAt: Date): Omit<Article, 'id'> | null {
   const externalId = raw.id?.trim();
-  const headline = raw.title?.trim();
+  const title = raw.title?.trim();
   const publishedAt = raw.publishedAt ? new Date(raw.publishedAt) : null;
   if (
     !externalId ||
-    !headline ||
+    !title ||
     publishedAt === null ||
     Number.isNaN(publishedAt.getTime())
   ) {
     return null;
   }
 
-  const body = raw.description?.trim() || raw.content?.trim() || null;
-
   return {
     externalId,
-    headline,
-    body,
+    title,
+    body: raw.description?.trim() || raw.content?.trim() || null,
     url: raw.url?.trim() || null,
-    imageUrl: raw.image?.trim() || null,
+    image: raw.image?.trim() || null,
     sourceName: raw.source?.name?.trim() || null,
     publishedAt,
+    fetchedAt,
+    ratingStatus: 'PENDING',
   };
 }

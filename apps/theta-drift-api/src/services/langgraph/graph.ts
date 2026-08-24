@@ -1,19 +1,16 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { Injectable } from '@nestjs/common';
 import { Observable, defer, from } from 'rxjs';
+import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
 import { CurateNode } from './curate.node';
 import { RateNode } from './rate.node';
-import {
-  RatingStateAnnotation,
-  type RatingState,
-  type UniverseAsset,
-} from './state';
+import { RatingStateAnnotation, type RatingState } from './state';
 
 export interface GraphInput {
   articleId: string;
   title: string;
   body: string;
-  candidates: UniverseAsset[];
+  candidates: Asset[];
 }
 
 @Injectable()

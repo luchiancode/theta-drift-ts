@@ -1,6 +1,6 @@
 export interface Asset {
   id: string;
-  quoteSymbol: string;
+  symbol: string;
   name: string;
   assetClass: string;
   aliases: string[];

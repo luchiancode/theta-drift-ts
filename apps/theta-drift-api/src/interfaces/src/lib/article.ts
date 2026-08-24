@@ -1,20 +1,10 @@
-export interface ProviderArticle {
-  externalId: string;
-  headline: string;
-  body: string | null;
-  url: string | null;
-  imageUrl: string | null;
-  sourceName: string | null;
-  publishedAt: Date;
-}
-
 export interface Article {
   id: string;
   externalId: string;
   url: string | null;
-  headline: string;
+  title: string;
   body: string | null;
-  imageUrl: string | null;
+  image: string | null;
   sourceName: string | null;
   publishedAt: Date;
   fetchedAt: Date;
