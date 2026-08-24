@@ -6,7 +6,7 @@ import {
 } from '../adapters/llm/llm.provider';
 import { ENV, type Env } from '../../config/configuration';
 import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
-import { curateVerdictSchema } from './schemas';
+import { curateVerdictSchema, articlePrompt } from './schemas';
 import { type RatingState } from './state';
 
 const INSTRUCTIONS = `
@@ -48,7 +48,7 @@ export class CurateNode {
         'curate',
         curateVerdictSchema,
         `CANDIDATES:\n${lines}\n\n${INSTRUCTIONS}`,
-        `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`,
+        articlePrompt(title, body),
       )
       .pipe(
         map((verdict) => {
@@ -79,25 +79,27 @@ export class CurateNode {
       );
   }
 
-  asNode(): (state: RatingState) => Promise<Partial<RatingState>> {
-    return async (state) => {
-      const limit = this.env.RATING_CANDIDATE_LIMIT;
-      const picked = await firstValueFrom(
-        this.curate(state.title, state.body ?? '', state.candidates ?? [], limit),
-      );
+  async run(state: RatingState): Promise<Partial<RatingState>> {
+    const picked = await firstValueFrom(
+      this.curate(
+        state.title,
+        state.body ?? '',
+        state.candidates ?? [],
+        this.env.RATING_CANDIDATE_LIMIT,
+      ),
+    );
 
-      if (picked.length === 0) {
-        this.log.log(
-          `No candidates for ${state.articleId} — skipping rating model`,
-        );
-        return { universe: [], isRelevant: false, ratings: [] };
-      }
-
+    if (picked.length === 0) {
       this.log.log(
-        `Rating universe for ${state.articleId} (${picked.length}): ` +
-          picked.map((asset) => asset.symbol).join(', '),
+        `No candidates for ${state.articleId} — skipping rating model`,
       );
-      return { universe: picked };
-    };
+      return { universe: [], isRelevant: false, ratings: [] };
+    }
+
+    this.log.log(
+      `Rating universe for ${state.articleId} (${picked.length}): ` +
+        picked.map((asset) => asset.symbol).join(', '),
+    );
+    return { universe: picked };
   }
 }

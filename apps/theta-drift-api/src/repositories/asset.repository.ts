@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { defer, from } from 'rxjs';
+import { defer } from 'rxjs';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -8,21 +8,17 @@ export class AssetRepository {
 
   findAssets() {
     return defer(() =>
-      from(
-        this.prismaService.asset.findMany({
-          orderBy: { symbol: 'asc' },
-        }),
-      ),
+      this.prismaService.asset.findMany({
+        orderBy: { symbol: 'asc' },
+      }),
     );
   }
 
   findAsset(symbol: string) {
     return defer(() =>
-      from(
-        this.prismaService.asset.findUnique({
-          where: { symbol: symbol.toUpperCase() },
-        }),
-      ),
+      this.prismaService.asset.findUnique({
+        where: { symbol: symbol.toUpperCase() },
+      }),
     );
   }
 }

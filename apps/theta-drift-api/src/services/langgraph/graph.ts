@@ -1,6 +1,6 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { Injectable } from '@nestjs/common';
-import { Observable, defer, from } from 'rxjs';
+import { Observable, defer } from 'rxjs';
 import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
 import { CurateNode } from './curate.node';
 import { RateNode } from './rate.node';
@@ -22,13 +22,13 @@ export class RatingGraph {
   }
 
   invoke(input: GraphInput): Observable<RatingState> {
-    return defer(() => from(this.compiled.invoke(input)));
+    return defer(() => this.compiled.invoke(input));
   }
 
-  buildGraph(curateNode: CurateNode, rateNode: RateNode) {
+  private buildGraph(curateNode: CurateNode, rateNode: RateNode) {
     return new StateGraph(RatingStateAnnotation)
-      .addNode('curate', curateNode.asNode())
-      .addNode('rate', rateNode.asNode())
+      .addNode('curate', (state) => curateNode.run(state))
+      .addNode('rate', (state) => rateNode.run(state))
       .addEdge(START, 'curate')
       .addConditionalEdges(
         'curate',

@@ -17,7 +17,7 @@ export const GRADING_WINDOW_MIN = 15;
 export const GRADING_WINDOW_MAX = 10_080;
 
 function clamp(value: number, low: number, high: number, field: string): number {
-  const clamped = Math.max(low, Math.min(high, Math.trunc(value)));
+  const clamped = Math.max(low, Math.min(high, value));
   if (clamped !== value) {
     log.warn(
       `Clamped ${field} ${value} -> ${clamped}: model returned a value outside ${low}..${high}`,
@@ -30,7 +30,6 @@ export const ratingSchema = z.object({
   symbol: z.string().describe('Must be exactly one of the universe symbols.'),
   score: z
     .number()
-    .int()
     .transform((value) => clamp(value, SCORE_MIN, SCORE_MAX, 'score'))
     .describe(
       'Directional pressure this news exerts on a -100 to +100 scale. 0 is ' +
@@ -40,7 +39,6 @@ export const ratingSchema = z.object({
     ),
   confidence: z
     .number()
-    .int()
     .transform((value) =>
       clamp(value, CONFIDENCE_MIN, CONFIDENCE_MAX, 'confidence'),
     )
@@ -53,7 +51,6 @@ export const ratingSchema = z.object({
     ),
   gradingWindowMinutes: z
     .number()
-    .int()
     .transform((value) =>
       clamp(value, GRADING_WINDOW_MIN, GRADING_WINDOW_MAX, 'gradingWindowMinutes'),
     )
@@ -83,6 +80,10 @@ export const verdictSchema = z.object({
 });
 
 export type Verdict = z.infer<typeof verdictSchema>;
+
+export function articlePrompt(title: string, body: string): string {
+  return `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`;
+}
 
 export const curateVerdictSchema = z.object({
   symbols: z

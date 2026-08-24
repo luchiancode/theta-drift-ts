@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Observable, defer, from, map } from 'rxjs';
+import { Observable, defer, map } from 'rxjs';
 import type {
   Article,
   Quote,
@@ -19,35 +19,29 @@ export class ArticleRepository {
 
   saveArticles(articles: Omit<Article, 'id'>[]): Observable<number> {
     return defer(() =>
-      from(
-        this.prismaService.article.createMany({
-          data: articles,
-          skipDuplicates: true,
-        }),
-      ),
+      this.prismaService.article.createMany({
+        data: articles,
+        skipDuplicates: true,
+      }),
     ).pipe(map(({ count }) => count));
   }
 
   findRatedArticles() {
     return defer(() =>
-      from(
-        this.prismaService.article.findMany({
-          where: { ratingStatus: RatingStatus.RATED },
-          orderBy: { publishedAt: 'desc' },
-          include: articleWithRatings,
-        }),
-      ),
+      this.prismaService.article.findMany({
+        where: { ratingStatus: RatingStatus.RATED },
+        orderBy: { publishedAt: 'desc' },
+        include: articleWithRatings,
+      }),
     );
   }
 
   findArticleById(id: string) {
     return defer(() =>
-      from(
-        this.prismaService.article.findUnique({
-          where: { id },
-          include: articleWithRatings,
-        }),
-      ),
+      this.prismaService.article.findUnique({
+        where: { id },
+        include: articleWithRatings,
+      }),
     );
   }
 
@@ -57,10 +51,9 @@ export class ArticleRepository {
     'id' | 'title' | 'body' | 'publishedAt'
   > | null> {
     return defer(() =>
-      from(
-        this.prismaService.$queryRaw<
-          Pick<Article, 'id' | 'title' | 'body' | 'publishedAt'>[]
-        >`
+      this.prismaService.$queryRaw<
+        Pick<Article, 'id' | 'title' | 'body' | 'publishedAt'>[]
+      >`
           UPDATE article
              SET rating_status = 'IN_PROGRESS'::rating_status
            WHERE id = (
@@ -73,7 +66,6 @@ export class ArticleRepository {
            )
        RETURNING id, title, body, published_at AS "publishedAt"
         `,
-      ),
     ).pipe(map((rows) => rows[0] ?? null));
   }
 
@@ -93,8 +85,7 @@ export class ArticleRepository {
     promptVersion: string,
   ): Observable<number> {
     return defer(() =>
-      from(
-        this.prismaService.$transaction(async (tx) => {
+      this.prismaService.$transaction(async (tx) => {
           const assets = await tx.asset.findMany({
             where: {
               symbol: { in: ratings.map((rating) => rating.symbol) },
@@ -151,18 +142,15 @@ export class ArticleRepository {
           );
           return rows.length;
         }),
-      ),
     );
   }
 
   updateFailedArticle(articleId: string): Observable<void> {
     return defer(() =>
-      from(
-        this.prismaService.article.update({
-          where: { id: articleId },
-          data: { ratingStatus: RatingStatus.FAILED },
-        }),
-      ),
+      this.prismaService.article.update({
+        where: { id: articleId },
+        data: { ratingStatus: RatingStatus.FAILED },
+      }),
     ).pipe(map(() => undefined));
   }
 }

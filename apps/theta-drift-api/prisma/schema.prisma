@@ -55,13 +55,13 @@ model Rating {
   id                   String   @id @default(uuid(7)) @db.Uuid
   articleId            String   @map("article_id") @db.Uuid
   assetId              String   @map("asset_id") @db.Uuid
-  score                Int
-  confidence           Int
+  score                Float
+  confidence           Float
   explanation          String?
   model                String
   promptVersion        String   @map("prompt_version")
   ratedAt              DateTime @map("rated_at") @db.Timestamptz(6)
-  gradingWindowMinutes Int      @map("grading_window_minutes")
+  gradingWindowMinutes Float    @map("grading_window_minutes")
   snapshot             Json?
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)

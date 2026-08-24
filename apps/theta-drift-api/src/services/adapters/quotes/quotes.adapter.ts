@@ -62,7 +62,7 @@ export class QuotesProviderAdapter implements QuotesProvider {
 
   private fetchQuote(symbol: string): Observable<Quote | null> {
     return this.quoteClient.getQuote(symbol).pipe(
-      map((row) => (row === undefined ? null : toQuote(row))),
+      map((row) => (row ? toQuote(row) : null)),
     );
   }
 }

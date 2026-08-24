@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
+  EMPTY,
   Observable,
   catchError,
   concatMap,
   count,
-  filter,
   forkJoin,
   map,
   switchMap,
@@ -35,13 +35,15 @@ export class RatingOrchestrator {
       this.assetService.findAssets(),
       this.articleService.findFirstPendingArticle(),
     ]).pipe(
-      filter(([, article]) => article !== null),
-      concatMap(([assets, article]) =>
-        this.processOne(
+      concatMap(([assets, article]) => {
+        if (article === null) {
+          return EMPTY;
+        }
+        return this.processOne(
           article,
           assets.filter((asset) => asset.inUniverse),
-        ),
-      ),
+        );
+      }),
       count(),
     );
   }

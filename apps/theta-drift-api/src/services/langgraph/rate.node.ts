@@ -9,7 +9,7 @@ import {
   type QuotesProvider,
 } from '../adapters/quotes/quotes.provider';
 import type { Asset, Quote } from '@theta-drift/theta-drift-api/interfaces';
-import { verdictSchema } from './schemas';
+import { verdictSchema, articlePrompt } from './schemas';
 import { type RatingState } from './state';
 
 export const PROMPT_VERSION = 'graph-v3';
@@ -54,61 +54,58 @@ export class RateNode {
     universe: Asset[],
   ): Observable<Partial<RatingState>> {
     const ratedAt = new Date();
-    return this.quotesFor(universe).pipe(
-      switchMap((quotes) =>
-        this.llmProvider
-          .getVerdict(
-            'rate',
-            verdictSchema,
-            this.systemInstruction(universe, quotes, ratedAt),
-            `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`,
-          )
-          .pipe(
-            map((verdict) => {
-              const known = new Set(
-                universe.map((asset) => asset.symbol),
-              );
-              const kept = verdict.ratings.filter((rating) =>
-                known.has(rating.symbol),
-              );
-              const dropped = verdict.ratings.filter(
-                (rating) => !known.has(rating.symbol),
-              );
-              if (dropped.length > 0) {
-                this.log.warn(
-                  `Dropped out-of-universe symbols ` +
-                    `${dropped.map((rating) => rating.symbol).join(', ')} on ${articleId}`,
+    return this.quotesProvider
+      .quotesFor(universe.map((asset) => asset.symbol))
+      .pipe(
+        switchMap((quotes) =>
+          this.llmProvider
+            .getVerdict(
+              'rate',
+              verdictSchema,
+              this.systemInstruction(universe, quotes, ratedAt),
+              articlePrompt(title, body),
+            )
+            .pipe(
+              map((verdict) => {
+                const known = new Set(
+                  universe.map((asset) => asset.symbol),
                 );
-              }
-              return {
-                isRelevant: verdict.isRelevant,
-                ratings: kept,
-                quotes,
-                ratedAt,
-              };
-            }),
-          ),
-      ),
-    );
-  }
-
-  asNode(): (state: RatingState) => Promise<Partial<RatingState>> {
-    return async (state) =>
-      firstValueFrom(
-        this.rate(
-          state.articleId,
-          state.title,
-          state.body ?? '',
-          state.universe ?? [],
+                const kept = [];
+                const dropped = [];
+                for (const rating of verdict.ratings) {
+                  if (known.has(rating.symbol)) {
+                    kept.push(rating);
+                  } else {
+                    dropped.push(rating);
+                  }
+                }
+                if (dropped.length > 0) {
+                  this.log.warn(
+                    `Dropped out-of-universe symbols ` +
+                      `${dropped.map((rating) => rating.symbol).join(', ')} on ${articleId}`,
+                  );
+                }
+                return {
+                  isRelevant: verdict.isRelevant,
+                  ratings: kept,
+                  quotes,
+                  ratedAt,
+                };
+              }),
+            ),
         ),
       );
   }
 
-  private quotesFor(universe: Asset[]): Observable<Map<string, Quote>> {
-    const symbols = [
-      ...new Set(universe.map((asset) => asset.symbol).filter(Boolean)),
-    ];
-    return this.quotesProvider.quotesFor(symbols);
+  async run(state: RatingState): Promise<Partial<RatingState>> {
+    return firstValueFrom(
+      this.rate(
+        state.articleId,
+        state.title,
+        state.body ?? '',
+        state.universe ?? [],
+      ),
+    );
   }
 
   private systemInstruction(
