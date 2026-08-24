@@ -125,7 +125,12 @@ export class ArticleRepository {
               promptVersion,
               ratedAt: quote?.quotedAt ?? ratedAt,
               gradingWindowMinutes: rating.gradingWindowMinutes,
-              snapshot: quote ?? Prisma.DbNull,
+              snapshot: quote
+                ? {
+                    ...quote,
+                    quotedAt: quote.quotedAt?.toISOString() ?? null,
+                  }
+                : Prisma.DbNull,
             });
           }
 
