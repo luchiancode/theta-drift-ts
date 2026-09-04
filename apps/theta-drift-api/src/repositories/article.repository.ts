@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Observable, defer, map } from 'rxjs';
 import type {
   Article,
@@ -13,8 +13,6 @@ const articleWithRatings = {
 
 @Injectable()
 export class ArticleRepository {
-  private readonly log = new Logger(ArticleRepository.name);
-
   constructor(private readonly prismaService: PrismaService) {}
 
   saveArticles(articles: Omit<Article, 'id'>[]): Observable<number> {
@@ -86,62 +84,49 @@ export class ArticleRepository {
   ): Observable<number> {
     return defer(() =>
       this.prismaService.$transaction(async (tx) => {
-          const assets = await tx.asset.findMany({
-            where: {
-              symbol: { in: ratings.map((rating) => rating.symbol) },
-            },
-            select: { id: true, symbol: true },
-          });
-          const assetIds = new Map(
-            assets.map((asset) => [asset.symbol, asset.id]),
-          );
+        const assets = await tx.asset.findMany({
+          where: { symbol: { in: ratings.map((rating) => rating.symbol) } },
+          select: { id: true, symbol: true },
+        });
+        const assetIds = new Map(
+          assets.map((asset) => [asset.symbol, asset.id]),
+        );
 
-          const rows = [];
-          for (const rating of ratings) {
-            const assetId = assetIds.get(rating.symbol);
+        // `symbol` keys the lookups; everything left on `rating` is a column.
+        const rows = ratings.flatMap(
+          ({ symbol, ...rating }): Prisma.RatingCreateManyInput[] => {
+            const assetId = assetIds.get(symbol);
             if (assetId === undefined) {
-              this.log.warn(
-                `Unknown symbol ${rating.symbol} on ${articleId}; skipping`,
-              );
-              continue;
+              return [];
             }
-            const quote = quotes.get(rating.symbol);
-            rows.push({
-              articleId,
-              assetId,
-              score: rating.score,
-              confidence: rating.confidence,
-              explanation: rating.explanation,
-              model,
-              promptVersion,
-              ratedAt: quote?.quotedAt ?? ratedAt,
-              gradingWindowMinutes: rating.gradingWindowMinutes,
-              snapshot: quote
-                ? {
-                    ...quote,
-                    quotedAt: quote.quotedAt?.toISOString() ?? null,
-                  }
-                : Prisma.DbNull,
-            });
-          }
+            const quote = quotes.get(symbol);
+            return [
+              {
+                ...rating,
+                articleId,
+                assetId,
+                model,
+                promptVersion,
+                ratedAt: quote?.quotedAt ?? ratedAt,
+                snapshot: quote
+                  ? { ...quote, quotedAt: quote.quotedAt?.toISOString() ?? null }
+                  : Prisma.DbNull,
+              },
+            ];
+          },
+        );
 
-          await tx.rating.deleteMany({ where: { articleId } });
-          if (rows.length > 0) {
-            await tx.rating.createMany({ data: rows });
-          }
-
-          const ratingStatus =
-            rows.length > 0 ? RatingStatus.RATED : RatingStatus.IRRELEVANT;
-          await tx.article.update({
-            where: { id: articleId },
-            data: { ratingStatus },
-          });
-
-          this.log.log(
-            `Rated ${articleId} as ${ratingStatus} with ${rows.length} rating(s) [${model}]`,
-          );
-          return rows.length;
-        }),
+        await tx.rating.deleteMany({ where: { articleId } });
+        await tx.rating.createMany({ data: rows });
+        await tx.article.update({
+          where: { id: articleId },
+          data: {
+            ratingStatus:
+              rows.length > 0 ? RatingStatus.RATED : RatingStatus.IRRELEVANT,
+          },
+        });
+        return rows.length;
+      }),
     );
   }
 
