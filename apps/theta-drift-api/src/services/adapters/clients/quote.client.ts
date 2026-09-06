@@ -25,6 +25,8 @@ export interface QuoteDto {
 
 @Injectable()
 export class QuoteClient {
+  private readonly TIMEOUT_MS = 10_000;
+
   private readonly log = new Logger(QuoteClient.name);
 
   constructor(
@@ -36,7 +38,7 @@ export class QuoteClient {
     return this.httpService
       .get<QuoteDto[]>('quote', {
         baseURL: `${this.env.QUOTE_BASE_URL}/`,
-        timeout: this.env.QUOTE_TIMEOUT_MS,
+        timeout: this.TIMEOUT_MS,
         params: { symbol, apikey: this.env.QUOTE_API_KEY },
       })
       .pipe(

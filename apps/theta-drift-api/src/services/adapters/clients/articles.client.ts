@@ -16,6 +16,12 @@ export interface ArticleDto {
 
 @Injectable()
 export class ArticlesClient {
+  private readonly CATEGORY = 'business';
+  private readonly LANG = 'en';
+  private readonly COUNTRY = 'us';
+  private readonly MAX = 10;
+  private readonly TIMEOUT_MS = 10_000;
+
   constructor(
     private readonly httpService: HttpService,
     @Inject(ENV) private readonly env: Env,
@@ -25,13 +31,13 @@ export class ArticlesClient {
     return this.httpService
       .get<{ articles?: ArticleDto[] }>('top-headlines', {
         baseURL: `${this.env.ARTICLES_PROVIDER_BASE_URL}/`,
-        timeout: this.env.ARTICLES_PROVIDER_TIMEOUT_MS,
+        timeout: this.TIMEOUT_MS,
         params: {
           apikey: this.env.ARTICLES_PROVIDER_API_KEY,
-          lang: this.env.ARTICLES_PROVIDER_LANG,
-          country: this.env.ARTICLES_PROVIDER_COUNTRY,
-          category: this.env.ARTICLES_PROVIDER_CATEGORY,
-          max: this.env.ARTICLES_PROVIDER_MAX,
+          lang: this.LANG,
+          country: this.COUNTRY,
+          category: this.CATEGORY,
+          max: this.MAX,
         },
       })
       .pipe(map((response) => response.data.articles ?? []));

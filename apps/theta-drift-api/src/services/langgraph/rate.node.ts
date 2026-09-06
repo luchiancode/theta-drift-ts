@@ -55,7 +55,7 @@ export class RateNode {
   ): Observable<Partial<RatingState>> {
     const ratedAt = new Date();
     return this.quotesProvider
-      .quotesFor(universe.map((asset) => asset.symbol))
+      .getQuotesBySymbol(universe.map((asset) => asset.symbol))
       .pipe(
         switchMap((quotes) =>
           this.llmProvider

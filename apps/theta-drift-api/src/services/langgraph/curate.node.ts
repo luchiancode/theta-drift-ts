@@ -4,10 +4,11 @@ import {
   LLM_PROVIDER,
   type LlmProvider,
 } from '../adapters/llm/llm.provider';
-import { ENV, type Env } from '../../config/configuration';
 import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
 import { curateVerdictSchema, articlePrompt } from './schemas';
 import { type RatingState } from './state';
+
+const CANDIDATE_LIMIT = 16;
 
 const INSTRUCTIONS = `
 You pick which assets a news article might move. You do not score them.
@@ -27,14 +28,12 @@ export class CurateNode {
 
   constructor(
     @Inject(LLM_PROVIDER) private readonly llmProvider: LlmProvider,
-    @Inject(ENV) private readonly env: Env,
   ) {}
 
   curate(
     title: string,
     body: string,
     candidates: Asset[],
-    limit: number,
   ): Observable<Asset[]> {
     const known = new Map(
       candidates.map((asset) => [asset.symbol.toUpperCase(), asset]),
@@ -66,7 +65,7 @@ export class CurateNode {
             }
             seen.add(asset.symbol);
             picked.push(asset);
-            if (picked.length >= limit) {
+            if (picked.length >= CANDIDATE_LIMIT) {
               break;
             }
           }
@@ -76,17 +75,14 @@ export class CurateNode {
           this.log.log(`Curated ${picked.length}/${candidates.length} candidates`);
           return picked;
         }),
+
+        //TO DO: QUOTE FETCH GOES HERE NOT IN RATE NODE
       );
   }
 
   async run(state: RatingState): Promise<Partial<RatingState>> {
     const picked = await firstValueFrom(
-      this.curate(
-        state.title,
-        state.body ?? '',
-        state.candidates ?? [],
-        this.env.RATING_CANDIDATE_LIMIT,
-      ),
+      this.curate(state.title, state.body ?? '', state.candidates ?? []),
     );
 
     if (picked.length === 0) {

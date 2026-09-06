@@ -8,6 +8,7 @@ import { ARTICLES_PROVIDER } from './articles/articles.provider';
 import { LlmProviderAdapter } from './llm/llm.adapter';
 import { LLM_PROVIDER } from './llm/llm.provider';
 import { QuotesProviderAdapter } from './quotes/quotes.adapter';
+import { QuotesMapper } from './quotes/quotes.mapper';
 import { QUOTES_PROVIDER } from './quotes/quotes.provider';
 
 
@@ -19,6 +20,7 @@ import { QUOTES_PROVIDER } from './quotes/quotes.provider';
     LlmClient,
     ArticlesProviderAdapter,
     { provide: ARTICLES_PROVIDER, useExisting: ArticlesProviderAdapter },
+    QuotesMapper,
     QuotesProviderAdapter,
     { provide: QUOTES_PROVIDER, useExisting: QuotesProviderAdapter },
     LlmProviderAdapter,

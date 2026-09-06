@@ -45,10 +45,8 @@ export class SchedulerService implements OnApplicationBootstrap, OnModuleDestroy
       this.startRating();
     }
 
-    const minSeconds = this.env.INGEST_INTERVAL_MIN_SECONDS;
-    const maxSeconds = this.env.INGEST_INTERVAL_MAX_SECONDS;
     this.log.log(
-      `Jobs: ingest=${ingestEnabled}/${minSeconds}-${maxSeconds}s ` +
+      `Jobs: ingest=${ingestEnabled}/${this.env.INGEST_INTERVAL_SECONDS}s ` +
         `rate=${ratingEnabled}/${this.env.RATING_INTERVAL_SECONDS}s ` +
         `batch=${this.env.RATING_BATCH_SIZE}`,
     );
@@ -61,8 +59,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnModuleDestroy
 
 
   private startIngest(): void {
-    const min = this.env.INGEST_INTERVAL_MIN_SECONDS;
-    const max = this.env.INGEST_INTERVAL_MAX_SECONDS;
+    const seconds = this.env.INGEST_INTERVAL_SECONDS;
 
     defer(() => this.ingestService.ingestOnce())
       .pipe(
@@ -73,11 +70,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnModuleDestroy
           );
           return of(0);
         }),
-        repeat({
-          delay: () => {
-            return timer((max - min + 1) * 1000);
-          },
-        }),
+        repeat({ delay: () => timer(seconds * 1000) }),
         takeUntil(this.destroy$),
       )
       .subscribe();
