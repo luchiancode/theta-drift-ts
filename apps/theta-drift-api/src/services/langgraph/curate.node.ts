@@ -1,10 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Observable, firstValueFrom, map } from 'rxjs';
+import { Observable, firstValueFrom, map, of, switchMap } from 'rxjs';
 import {
   LLM_PROVIDER,
   type LlmProvider,
 } from '../adapters/llm/llm.provider';
-import type { Asset } from '@theta-drift/theta-drift-api/interfaces';
+import {
+  QUOTES_PROVIDER,
+  type QuotesProvider,
+} from '../adapters/quotes/quotes.provider';
+import type { Asset, Quote } from '@theta-drift/theta-drift-api/interfaces';
 import { curateVerdictSchema, articlePrompt } from './schemas';
 import { type RatingState } from './state';
 
@@ -22,19 +26,25 @@ Rules:
 - Empty list is the common answer for general chatter.
 `.trim();
 
+export interface Curated {
+  universe: Asset[];
+  quotes: Map<string, Quote>;
+}
+
 @Injectable()
 export class CurateNode {
   private readonly log = new Logger(CurateNode.name);
 
   constructor(
     @Inject(LLM_PROVIDER) private readonly llmProvider: LlmProvider,
+    @Inject(QUOTES_PROVIDER) private readonly quotesProvider: QuotesProvider,
   ) {}
 
   curate(
     title: string,
     body: string,
     candidates: Asset[],
-  ): Observable<Asset[]> {
+  ): Observable<Curated> {
     const known = new Map(
       candidates.map((asset) => [asset.symbol.toUpperCase(), asset]),
     );
@@ -75,27 +85,32 @@ export class CurateNode {
           this.log.log(`Curated ${picked.length}/${candidates.length} candidates`);
           return picked;
         }),
-
-        //TO DO: QUOTE FETCH GOES HERE NOT IN RATE NODE
+        switchMap((picked) =>
+          picked.length === 0
+            ? of({ universe: picked, quotes: new Map<string, Quote>() })
+            : this.quotesProvider
+                .getQuotesBySymbol(picked.map((asset) => asset.symbol))
+                .pipe(map((quotes) => ({ universe: picked, quotes }))),
+        ),
       );
   }
 
   async run(state: RatingState): Promise<Partial<RatingState>> {
-    const picked = await firstValueFrom(
+    const { universe, quotes } = await firstValueFrom(
       this.curate(state.title, state.body ?? '', state.candidates ?? []),
     );
 
-    if (picked.length === 0) {
+    if (universe.length === 0) {
       this.log.log(
         `No candidates for ${state.articleId} — skipping rating model`,
       );
-      return { universe: [], isRelevant: false, ratings: [] };
+      return { universe: [], quotes, isRelevant: false, ratings: [] };
     }
 
     this.log.log(
-      `Rating universe for ${state.articleId} (${picked.length}): ` +
-        picked.map((asset) => asset.symbol).join(', '),
+      `Rating universe for ${state.articleId} (${universe.length}): ` +
+        universe.map((asset) => asset.symbol).join(', '),
     );
-    return { universe: picked };
+    return { universe, quotes };
   }
 }
