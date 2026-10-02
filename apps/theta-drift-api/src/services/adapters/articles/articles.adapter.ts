@@ -23,7 +23,7 @@ export class ArticlesProviderAdapter implements ArticlesProvider {
       map((rows) => {
         const fetchedAt = new Date();
         return rows
-          .map((row) => toArticle(row, fetchedAt))
+          .map((row) => this.toArticle(row, fetchedAt))
           .filter((article) => !!article)
       }),
       catchError((error: AxiosError) => {
@@ -36,30 +36,30 @@ export class ArticlesProviderAdapter implements ArticlesProvider {
       }),
     );
   }
-}
 
-function toArticle(raw: ArticleDto, fetchedAt: Date): Omit<Article, 'id'> | null {
-  const externalId = raw.id?.trim();
-  const title = raw.title?.trim();
-  const publishedAt = raw.publishedAt ? new Date(raw.publishedAt) : null;
-  if (
-    !externalId ||
-    !title ||
-    publishedAt === null ||
-    Number.isNaN(publishedAt.getTime())
-  ) {
-    return null;
+  toArticle(raw: ArticleDto, fetchedAt: Date): Omit<Article, 'id'> | null {
+    const externalId = raw.id?.trim();
+    const title = raw.title?.trim();
+    const publishedAt = raw.publishedAt ? new Date(raw.publishedAt) : null;
+    if (
+      !externalId ||
+      !title ||
+      publishedAt === null ||
+      Number.isNaN(publishedAt.getTime())
+    ) {
+      return null;
+    }
+
+    return {
+      externalId,
+      title,
+      body: raw.description?.trim() || raw.content?.trim() || null,
+      url: raw.url?.trim() || null,
+      image: raw.image?.trim() || null,
+      sourceName: raw.source?.name?.trim() || null,
+      publishedAt,
+      fetchedAt,
+      ratingStatus: 'PENDING',
+    };
   }
-
-  return {
-    externalId,
-    title,
-    body: raw.description?.trim() || raw.content?.trim() || null,
-    url: raw.url?.trim() || null,
-    image: raw.image?.trim() || null,
-    sourceName: raw.source?.name?.trim() || null,
-    publishedAt,
-    fetchedAt,
-    ratingStatus: 'PENDING',
-  };
 }

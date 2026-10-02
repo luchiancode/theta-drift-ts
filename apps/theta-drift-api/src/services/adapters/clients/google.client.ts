@@ -4,8 +4,8 @@ import { Observable, from, map, tap } from 'rxjs';
 import type { z } from 'zod';
 
 @Injectable()
-export class LlmClient {
-  private readonly log = new Logger(LlmClient.name);
+export class GoogleClient {
+  private readonly log = new Logger(GoogleClient.name);
 
   getVerdict<S extends z.ZodType>(
     model: ChatGoogleGenerativeAI,

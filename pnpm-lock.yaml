@@ -53,6 +53,9 @@ importers:
       '@nx/angular':
         specifier: 23.1.1
         version: 23.1.1(c95fd9ec84d3a9c6d18403df09f3ce5f)
+      '@openrouter/sdk':
+        specifier: 1.3.27
+        version: 1.3.27
       '@prisma/adapter-pg':
         specifier: ^7.9.1
         version: 7.9.1
@@ -2763,6 +2766,9 @@ packages:
 
   '@nx/workspace@23.1.1':
     resolution: {integrity: sha512-woBDOW9bNcp+I2UEKhV62zc+1/gPCKPkTHZgwCdgoXSlXC3N9soGpnLG5QFy8NLodFC1f+5TSQJqN1tBW5rfIA==}
+
+  '@openrouter/sdk@1.3.27':
+    resolution: {integrity: sha512-/kGWE5jgdFSFpw7d1C0/E4ZRcpFjz6Dn8jRn3sWxWTrjJ/ynvwJlhps8DsNASdgWQ7GEcOSgeEo6Eb8wZbxJ5g==}
 
   '@oxc-parser/binding-android-arm-eabi@0.121.0':
     resolution: {integrity: sha512-n07FQcySwOlzap424/PLMtOkbS7xOu8nsJduKL8P3COGHKgKoDYXwoAHCbChfgFpHnviehrLWIPX0lKGtbEk/A==}
@@ -12446,6 +12452,10 @@ snapshots:
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
+
+  '@openrouter/sdk@1.3.27':
+    dependencies:
+      zod: 4.4.3
 
   '@oxc-parser/binding-android-arm-eabi@0.121.0':
     optional: true

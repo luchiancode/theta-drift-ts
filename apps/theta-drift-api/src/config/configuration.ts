@@ -17,6 +17,9 @@ const envSchema = z.object({
   LLM_MODEL: z.string().min(1),
   LLM_CURATE_MODEL: z.string().min(1),
 
+  OPEN_ROUTER_API_KEY: z.string().default(''),
+  OPEN_ROUTER_LLM_TEXT: z.string().min(1).default('mistralai/mistral-nemo'),
+
   INGEST_ENABLED: bool.default(false),
   INGEST_INTERVAL_SECONDS: z.coerce.number().int().default(120),
   

@@ -55,7 +55,6 @@ vitest.config.*.timestamp*
 # generated Prisma client
 apps/theta-drift-api/src/generated
 
-.cursor
 .vscode
 .cursorignore
 .pnpm-store/

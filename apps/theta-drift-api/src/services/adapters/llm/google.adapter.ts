@@ -2,16 +2,16 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { Inject, Injectable } from '@nestjs/common';
 import { Observable, defer } from 'rxjs';
 import type { z } from 'zod';
-import { LlmClient } from '../clients/llm.client';
+import { GoogleClient } from '../clients/google.client';
 import { ENV, type Env } from '../../../config/configuration';
 import type { LlmProvider, LlmRole } from './llm.provider';
 
 @Injectable()
-export class LlmProviderAdapter implements LlmProvider {
+export class GoogleProviderAdapter implements LlmProvider {
   private readonly clients = new Map<string, ChatGoogleGenerativeAI>();
 
   constructor(
-    private readonly llmClient: LlmClient,
+    private readonly googleClient: GoogleClient,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -26,7 +26,7 @@ export class LlmProviderAdapter implements LlmProvider {
     input: string,
   ): Observable<z.infer<S>> {
     return defer(() =>
-      this.llmClient.getVerdict(
+      this.googleClient.getVerdict(
         this.clientFor(this.modelFor(role)),
         schema,
         systemInstruction,

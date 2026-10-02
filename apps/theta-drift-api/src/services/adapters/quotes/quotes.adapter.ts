@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable, defer, forkJoin, map, of } from 'rxjs';
 import type { Quote } from '@theta-drift/theta-drift-api/interfaces';
-import { QuoteClient } from '../clients/quote.client';
-import { QuotesMapper } from './quotes.mapper';
+import { QuoteClient, type QuoteDto } from '../clients/quote.client';
 import type { QuotesProvider } from './quotes.provider';
 
 interface CacheEntry {
@@ -19,7 +18,6 @@ export class QuotesProviderAdapter implements QuotesProvider {
 
   constructor(
     private readonly quoteClient: QuoteClient,
-    private readonly quotesMapper: QuotesMapper,
   ) {}
 
   getQuotesBySymbol(symbols: string[]): Observable<Map<string, Quote>> {
@@ -60,9 +58,47 @@ export class QuotesProviderAdapter implements QuotesProvider {
     });
   }
 
+  toQuote(raw: QuoteDto | null | undefined): Quote | null {
+    if (!raw) {
+      return null;
+    }
+
+    const symbol = raw.symbol?.trim();
+    if (!symbol) {
+      return null;
+    }
+
+    const quotedAt =
+      typeof raw.timestamp === 'number' && Number.isFinite(raw.timestamp)
+        ? new Date(raw.timestamp * 1000)
+        : null;
+
+    return {
+      symbol,
+      exchange: raw.exchange?.trim() || null,
+      price: raw.price ?? null,
+      change: raw.change ?? null,
+      changePercentage: raw.changePercentage ?? null,
+      dayLow: raw.dayLow ?? null,
+      dayHigh: raw.dayHigh ?? null,
+      yearLow: raw.yearLow ?? null,
+      yearHigh: raw.yearHigh ?? null,
+      marketCap:
+        typeof raw.marketCap === 'number' && Number.isFinite(raw.marketCap)
+          ? raw.marketCap
+          : null,
+      priceAvg50: raw.priceAvg50 ?? null,
+      priceAvg200: raw.priceAvg200 ?? null,
+      volume: raw.volume ?? null,
+      open: raw.open ?? null,
+      previousClose: raw.previousClose ?? null,
+      quotedAt: quotedAt,
+    };
+  }
+
   private fetchQuote(symbol: string): Observable<Quote | null> {
     return this.quoteClient.getQuote(symbol).pipe(
-      map((row) => (row ? this.quotesMapper.toQuote(row) : null)),
+      map((row) => this.toQuote(row)),
     );
   }
 }
