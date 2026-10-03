@@ -5,7 +5,7 @@ import {
   type LlmProvider,
 } from '../adapters/llm/llm.provider';
 import type { Asset, Quote } from '@theta-drift/theta-drift-api/interfaces';
-import { verdictSchema, articlePrompt } from './schemas';
+import { assetRatingSchema } from './schemas';
 import { type RatingState } from './state';
 
 export const PROMPT_VERSION = 'graph-v3';
@@ -15,8 +15,8 @@ You rate financial news for how it pressures a fixed universe of assets.
 
 Rules:
 - Only ever use symbols from the universe above. Never invent one.
-- Most general financial news moves none of these assets. Say so: set
-  isRelevant to false and return no ratings. That is the common answer.
+- Most general financial news moves none of these assets. Say so by returning
+  an empty list. That is the common answer.
 - Rate knock-on effects when the causal chain is real (an OPEC supply cut
   lifts crude, and lifts fuel costs for airlines), but never stretch. An oil
   story does not move Apple.
@@ -53,16 +53,16 @@ export class RateNode {
     return this.llmProvider
       .getVerdict(
         'rate',
-        verdictSchema,
+        assetRatingSchema,
         this.systemInstruction(universe, quotes, ratedAt),
-        articlePrompt(title, body),
+        this.articlePrompt(title, body),
       )
       .pipe(
         map((verdict) => {
           const known = new Set(universe.map((asset) => asset.symbol));
           const kept = [];
           const dropped = [];
-          for (const rating of verdict.ratings) {
+          for (const rating of verdict) {
             if (known.has(rating.symbol)) {
               kept.push(rating);
             } else {
@@ -76,7 +76,7 @@ export class RateNode {
             );
           }
           return {
-            isRelevant: verdict.isRelevant,
+            isRelevant: kept.length > 0,
             ratings: kept,
             ratedAt,
           };
@@ -94,6 +94,10 @@ export class RateNode {
         state.quotes ?? new Map(),
       ),
     );
+  }
+
+  private articlePrompt(title: string, body: string): string {
+    return `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`;
   }
 
   private systemInstruction(

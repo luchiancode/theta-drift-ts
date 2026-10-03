@@ -9,7 +9,7 @@ import {
   type QuotesProvider,
 } from '../adapters/quotes/quotes.provider';
 import type { Asset, Quote } from '@theta-drift/theta-drift-api/interfaces';
-import { curateVerdictSchema, articlePrompt } from './schemas';
+import { filterAssetsSchema } from './schemas';
 import { type RatingState } from './state';
 
 const CANDIDATE_LIMIT = 16;
@@ -55,9 +55,9 @@ export class CurateNode {
     return this.llmProvider
       .getVerdict(
         'curate',
-        curateVerdictSchema,
+        filterAssetsSchema,
         `CANDIDATES:\n${lines}\n\n${INSTRUCTIONS}`,
-        articlePrompt(title, body),
+        this.articlePrompt(title, body),
       )
       .pipe(
         map((verdict) => {
@@ -93,6 +93,10 @@ export class CurateNode {
                 .pipe(map((quotes) => ({ universe: picked, quotes }))),
         ),
       );
+  }
+
+  private articlePrompt(title: string, body: string): string {
+    return `HEADLINE: ${title}\n\nBODY: ${body.trim() || '(none provided)'}`;
   }
 
   async run(state: RatingState): Promise<Partial<RatingState>> {
