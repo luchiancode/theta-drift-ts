@@ -82,7 +82,7 @@ export class CurateNode {
           if (dropped.length > 0) {
             this.log.warn(`Curate dropped unknown symbols ${dropped.join(', ')}`);
           }
-          this.log.log(`Curated ${picked.length}/${candidates.length} candidates`);
+
           return picked;
         }),
         switchMap((picked) =>

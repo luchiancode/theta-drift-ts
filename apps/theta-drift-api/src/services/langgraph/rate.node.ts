@@ -69,12 +69,7 @@ export class RateNode {
               dropped.push(rating);
             }
           }
-          if (dropped.length > 0) {
-            this.log.warn(
-              `Dropped out-of-universe symbols ` +
-                `${dropped.map((rating) => rating.symbol).join(', ')} on ${articleId}`,
-            );
-          }
+          
           return {
             isRelevant: kept.length > 0,
             ratings: kept,

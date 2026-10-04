@@ -69,7 +69,6 @@ export const assetRatingSchema = z
       'rate an asset the news does not actually touch.',
   );
 
-export type AssetRating = z.infer<typeof assetRatingSchema>[number];
 
 export const filterAssetsSchema = z.object({
   symbols: z
@@ -79,3 +78,5 @@ export const filterAssetsSchema = z.object({
         'pressures. Empty if none. Never invent a symbol.',
     ),
 });
+
+export type AssetRating = z.infer<typeof assetRatingSchema>[number];
